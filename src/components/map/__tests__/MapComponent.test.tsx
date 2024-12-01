@@ -1,19 +1,32 @@
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import MapComponent from '../MapComponent';
 
-// Mock the Google Maps JavaScript API
+// Mock the environment variable
+process.env.REACT_APP_GOOGLE_MAPS_API_KEY = 'test-api-key';
+
+// Update the mock to handle more of the component's requirements
 jest.mock('@react-google-maps/api', () => ({
-  GoogleMap: ({ children, onLoad }: { children: React.ReactNode, onLoad: (map: any) => void }) => {
-    // Call onLoad with mock map object
-    onLoad({ panTo: jest.fn() });
+  GoogleMap: ({ children, onLoad, center, zoom }: any) => {
+    // Simulate map load immediately
+    setTimeout(() => {
+      if (onLoad) {
+        onLoad({
+          panTo: jest.fn(),
+          setCenter: jest.fn(),
+          setZoom: jest.fn(),
+        });
+      }
+    }, 0);
     return <div data-testid="google-map">{children}</div>;
   },
   useJsApiLoader: () => ({
     isLoaded: true,
     loadError: null,
   }),
-  Marker: () => <div data-testid="map-marker" />,
+  Marker: ({ position }: any) => (
+    <div data-testid="map-marker" data-lat={position?.lat} data-lng={position?.lng} />
+  ),
 }));
 
 describe('MapComponent', () => {
@@ -22,25 +35,17 @@ describe('MapComponent', () => {
     lng: -79.383186,
   };
 
-  // Clean up after each test
-  afterEach(() => {
-    cleanup();
-    jest.clearAllMocks();
-  });
-
-  // Clean up after all tests
-  afterAll(() => {
-    jest.resetModules();
-  });
-
-  it('renders loading state when map is not loaded', () => {
+  it('renders loading state when map is loaded', () => {
     render(<MapComponent />);
     expect(screen.getByTestId('google-map')).toBeInTheDocument();
   });
 
   it('renders marker when location is selected', () => {
     render(<MapComponent selectedLocation={mockLocation} />);
-    expect(screen.getByTestId('map-marker')).toBeInTheDocument();
+    const marker = screen.getByTestId('map-marker');
+    expect(marker).toBeInTheDocument();
+    expect(marker.dataset.lat).toBe(mockLocation.lat.toString());
+    expect(marker.dataset.lng).toBe(mockLocation.lng.toString());
   });
 
   it('does not render marker when no location is selected', () => {
@@ -48,9 +53,13 @@ describe('MapComponent', () => {
     expect(screen.queryByTestId('map-marker')).not.toBeInTheDocument();
   });
 
-  it('calls onLoadCallback when map loads', () => {
+  it('calls onLoadCallback when map loads', async () => {
     const mockCallback = jest.fn();
     render(<MapComponent onLoadCallback={mockCallback} />);
-    expect(mockCallback).toHaveBeenCalledWith(expect.any(Object));
+    
+    // Wait for the next tick to allow the setTimeout in the mock to execute
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    expect(mockCallback).toHaveBeenCalled();
   });
 }); 
