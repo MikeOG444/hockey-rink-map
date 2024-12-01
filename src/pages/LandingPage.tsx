@@ -57,35 +57,48 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 const LandingPage = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [user] = useAuthState(auth);
+  const [searchInput, setSearchInput] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState<google.maps.LatLngLiteral | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [mapsApi, setMapsApi] = useState<typeof google.maps | null>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
-  const handleMapsLoad = (maps: typeof google.maps) => {
-    setMapsApi(maps);
-  };
-
   useEffect(() => {
-    if (mapsApi && searchInputRef.current) {
-      autocompleteRef.current = new mapsApi.places.Autocomplete(searchInputRef.current, {
-        types: ['establishment'],
-        componentRestrictions: { country: 'ca' },
-        fields: ['geometry', 'name', 'formatted_address']
-      });
+    if (searchInputRef.current && !autocompleteRef.current) {
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(
+        searchInputRef.current,
+        {
+          types: ['establishment'],
+          componentRestrictions: { country: 'ca' },
+          fields: ['geometry', 'name', 'formatted_address']
+        }
+      );
 
       autocompleteRef.current.addListener('place_changed', () => {
         const place = autocompleteRef.current?.getPlace();
+        console.log('Selected place:', place);
+
         if (place?.geometry?.location) {
           const location = {
             lat: place.geometry.location.lat(),
             lng: place.geometry.location.lng()
           };
-          // Handle the selected location (you can pass this to MapComponent)
-          console.log('Selected location:', location);
+          console.log('Setting new location:', location);
+          setSelectedLocation(location);
+          setSearchInput(place.formatted_address || '');
         }
       });
     }
-  }, [mapsApi]);
+
+    return () => {
+      if (autocompleteRef.current) {
+        google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
+  }, [searchInputRef.current]);
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchInput(event.target.value);
+  };
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -102,6 +115,8 @@ const LandingPage = () => {
               </SearchIconWrapper>
               <StyledInputBase
                 inputRef={searchInputRef}
+                value={searchInput}
+                onChange={handleSearchChange}
                 placeholder="Search for rinks…"
                 inputProps={{ 'aria-label': 'search' }}
               />
@@ -129,7 +144,9 @@ const LandingPage = () => {
       </AppBar>
       
       <Box sx={{ flexGrow: 1 }}>
-        <MapComponent onLoadCallback={handleMapsLoad} />
+        <MapComponent 
+          selectedLocation={selectedLocation}
+        />
       </Box>
 
       <AuthModal 

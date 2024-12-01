@@ -38,6 +38,7 @@ const MapComponent = ({ onLoadCallback, selectedLocation }: MapComponentProps) =
 
   useEffect(() => {
     if (map && selectedLocation) {
+      console.log('MapComponent received location:', selectedLocation);
       map.panTo(selectedLocation);
     }
   }, [map, selectedLocation]);
