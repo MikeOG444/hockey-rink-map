@@ -9,9 +9,6 @@
     "@mui/material": "^6.1.9",
     "@react-google-maps/api": "^2.20.3",
     "@reduxjs/toolkit": "^2.4.0",
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^27.5.2",
     "@types/node": "^17.0.45",
     "@types/react": "^18.3.12",
@@ -43,7 +40,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test": "NODE_NO_WARNINGS=1 jest --detectOpenHandles",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -65,6 +62,10 @@
     ]
   },
   "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
     "@types/firebase": "^2.4.32"
   }
 }
