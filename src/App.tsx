@@ -5,7 +5,7 @@ import LandingPage from './pages/LandingPage';
 
 const theme = createTheme();
 
-const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = ["places"];
+const libraries: ("places" | "drawing" | "geometry" | "visualization" | "marker")[] = ["places", "marker"];
 
 function App() {
   return (
