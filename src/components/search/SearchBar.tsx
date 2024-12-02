@@ -1,6 +1,7 @@
-import { useRef, useEffect, useState } from 'react';
-import { InputBase, alpha, styled } from '@mui/material';
+import { useState } from 'react';
+import { InputBase, alpha, styled, IconButton } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import { useGoogleAutocomplete } from '../../hooks/useGoogleAutocomplete';
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -41,58 +42,64 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
   },
 }));
 
+const SearchWrapper = styled('form')(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  width: '100%',
+}));
+
+const SearchButton = styled(IconButton)(({ theme }) => ({
+  marginLeft: theme.spacing(1),
+  color: theme.palette.common.white,
+}));
+
 interface SearchBarProps {
   onLocationSelect: (location: google.maps.LatLngLiteral) => void;
+  onSearchQuery?: (query: string) => void;
 }
 
-const SearchBar = ({ onLocationSelect }: SearchBarProps) => {
+const SearchBar = ({ onLocationSelect, onSearchQuery }: SearchBarProps) => {
   const [searchInput, setSearchInput] = useState('');
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-
-  useEffect(() => {
-    if (searchInputRef.current && !autocompleteRef.current) {
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(
-        searchInputRef.current,
-        {
-          types: ['geocode', 'establishment'],
-          componentRestrictions: { country: 'ca' },
-          fields: ['geometry', 'name', 'formatted_address']
-        }
-      );
-
-      autocompleteRef.current.addListener('place_changed', () => {
-        const place = autocompleteRef.current?.getPlace();
-        
-        if (place?.geometry?.location) {
-          const location = {
-            lat: place.geometry.location.lat(),
-            lng: place.geometry.location.lng()
-          };
-          onLocationSelect(location);
-          setSearchInput(place.name || place.formatted_address || '');
-        }
-      });
-    }
-  }, [onLocationSelect]);
+  const { searchInputRef } = useGoogleAutocomplete({
+    onPlaceSelect: (location, address) => {
+      onLocationSelect(location);
+      setSearchInput(address);
+    },
+    onSearchQuery
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchInput.trim() && onSearchQuery) {
+      onSearchQuery(searchInput.trim());
+    }
+  };
+
   return (
-    <Search>
-      <SearchIconWrapper>
+    <SearchWrapper onSubmit={handleSubmit}>
+      <Search>
+        <SearchIconWrapper>
+          <SearchIcon />
+        </SearchIconWrapper>
+        <StyledInputBase
+          inputRef={searchInputRef}
+          value={searchInput}
+          onChange={handleInputChange}
+          placeholder="Search for rinks…"
+          inputProps={{ 'aria-label': 'search' }}
+        />
+      </Search>
+      <SearchButton 
+        type="submit" 
+        aria-label="search"
+      >
         <SearchIcon />
-      </SearchIconWrapper>
-      <StyledInputBase
-        inputRef={searchInputRef}
-        value={searchInput}
-        onChange={handleInputChange}
-        placeholder="Search for rinks…"
-        inputProps={{ 'aria-label': 'search' }}
-      />
-    </Search>
+      </SearchButton>
+    </SearchWrapper>
   );
 };
 

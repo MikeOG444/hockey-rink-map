@@ -16,6 +16,26 @@ const LandingPage = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [user] = useAuthState(auth);
   const [selectedLocation, setSelectedLocation] = useState<google.maps.LatLngLiteral | null>(null);
+  const [searchResults, setSearchResults] = useState<google.maps.places.PlaceResult[]>([]);
+
+  const handleSearchQuery = (query: string) => {
+    const mapElement = document.querySelector('div[aria-label="Map"]');
+    if (!mapElement) return;
+    
+    const service = new google.maps.places.PlacesService(mapElement as HTMLDivElement);
+    
+    service.textSearch(
+      {
+        query: query,
+      },
+      (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          setSearchResults(results);
+          setSelectedLocation(null); // Clear single selection when showing search results
+        }
+      }
+    );
+  };
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -25,7 +45,12 @@ const LandingPage = () => {
             Hockey Rink Map
           </Typography>
           
-          {user && <SearchBar onLocationSelect={setSelectedLocation} />}
+          {user && (
+            <SearchBar 
+              onLocationSelect={setSelectedLocation}
+              onSearchQuery={handleSearchQuery}
+            />
+          )}
 
           <Box sx={{ flexGrow: 1 }} />
           
@@ -42,7 +67,10 @@ const LandingPage = () => {
       </AppBar>
       
       <Box sx={{ flexGrow: 1 }}>
-        <MapComponent selectedLocation={selectedLocation} />
+        <MapComponent 
+          selectedLocation={selectedLocation} 
+          searchResults={searchResults}
+        />
       </Box>
 
       <AuthModal 
